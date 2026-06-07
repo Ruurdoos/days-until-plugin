@@ -1,0 +1,18 @@
+{
+  "id": "days-until",
+  "name": "Days Until",
+  "version": "1.0.0",
+  "description": "Standalone countdown board for Super Productivity.",
+  "manifestVersion": 1,
+  "minSupVersion": "14.0.0",
+  "author": "Codex",
+  "homepage": "https://github.com/super-productivity/super-productivity/wiki/2.15-Develop-a-Plugin",
+  "icon": "icon.svg",
+  "iFrame": true,
+  "sidePanel": true,
+  "permissions": [
+    "showIndexHtmlAsView",
+    "persistDataSynced",
+    "loadSyncedData"
+  ]
+}

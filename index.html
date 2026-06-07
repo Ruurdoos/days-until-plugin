@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Days Until</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+      }
+
+      body {
+        background: color-mix(in srgb, var(--bg, #f7f7f5) 96%, white);
+        color: #171717;
+        font-family: "SF Pro Display", "Segoe UI", sans-serif;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        border: 0;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+      }
+
+      svg {
+        display: block;
+      }
+
+      .app {
+        min-height: 100vh;
+        padding: 24px 28px 36px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 28px;
+      }
+
+      .title-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0;
+        font-size: clamp(32px, 3.4vw, 48px);
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      .title-toggle svg {
+        width: 16px;
+        height: 16px;
+        opacity: 0.45;
+      }
+
+      .top-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .icon-btn {
+        width: 48px;
+        height: 48px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        background: color-mix(in srgb, var(--card-bg, white) 90%, var(--bg, #f7f7f5));
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04), 0 6px 24px rgba(0, 0, 0, 0.04);
+      }
+
+      .icon-btn:hover,
+      .close-btn:hover {
+        background: #f1f1f2;
+      }
+
+      .icon-btn svg,
+      .close-btn svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      .board {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 28px;
+      }
+
+      .card {
+        position: relative;
+        min-height: 360px;
+        padding: 28px 26px 24px;
+        border-radius: 28px;
+        background: #fff;
+        border: 1px solid #ececef;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02), 0 12px 40px rgba(0, 0, 0, 0.05);
+        transition: transform 160ms ease, box-shadow 160ms ease;
+      }
+
+      .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04), 0 20px 44px rgba(0, 0, 0, 0.08);
+      }
+
+      .card-menu-btn {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #424242;
+      }
+
+      .card-menu-btn:hover {
+        background: #f4f4f5;
+      }
+
+      .card-head {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding-top: 24px;
+        text-align: center;
+      }
+
+      .badge {
+        width: 38px;
+        height: 38px;
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        border: 1.5px solid #171717;
+        color: #171717;
+      }
+
+      .badge svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      .card-title {
+        margin: 0;
+        font-size: clamp(22px, 2vw, 34px);
+        font-weight: 500;
+        line-height: 1.15;
+      }
+
+      .days {
+        margin-top: 24px;
+        font-size: clamp(92px, 9vw, 126px);
+        line-height: 1;
+        font-weight: 300;
+        text-align: center;
+        color: #4b6fff;
+        letter-spacing: -0.04em;
+      }
+
+      .subtitle {
+        margin-top: 20px;
+        text-align: center;
+        color: #a6a6ac;
+        font-size: 18px;
+        line-height: 1.35;
+      }
+
+      .empty {
+        grid-column: 1 / -1;
+        min-height: 260px;
+        display: grid;
+        place-items: center;
+        border-radius: 30px;
+        background: rgba(255, 255, 255, 0.58);
+        border: 1px solid #ececef;
+        color: #a3a3aa;
+        font-size: 22px;
+      }
+
+      .menu {
+        position: fixed;
+        z-index: 20;
+        min-width: 250px;
+        padding: 14px;
+        border-radius: 26px;
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        box-shadow: 0 22px 60px rgba(0, 0, 0, 0.14);
+      }
+
+      .menu.hidden,
+      .modal.hidden,
+      .scrim.hidden {
+        display: none !important;
+      }
+
+      .menu-item {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        text-align: left;
+        font-size: 18px;
+      }
+
+      .menu-item:hover,
+      .icon-choice:hover {
+        background: #f5f5f7;
+      }
+
+      .menu-item.active {
+        color: #4b6fff;
+      }
+
+      .menu-left {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .menu-separator {
+        height: 1px;
+        margin: 10px 4px;
+        background: #ececef;
+      }
+
+      .menu-icon {
+        width: 28px;
+        height: 28px;
+        color: #171717;
+      }
+
+      .menu-icon svg {
+        width: 28px;
+        height: 28px;
+      }
+
+      .scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 15;
+        background: rgba(0, 0, 0, 0.08);
+      }
+
+      .modal {
+        position: fixed;
+        z-index: 25;
+        top: 50%;
+        left: 50%;
+        width: min(92vw, 460px);
+        transform: translate(-50%, -50%);
+        border-radius: 30px;
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.18);
+        padding: 24px;
+      }
+
+      .modal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      .modal-title {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 700;
+      }
+
+      .close-btn {
+        width: 38px;
+        height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: #f5f5f7;
+      }
+
+      .form {
+        display: grid;
+        gap: 14px;
+      }
+
+      .field {
+        display: grid;
+        gap: 8px;
+      }
+
+      .field span {
+        font-size: 14px;
+        color: #8f8f95;
+      }
+
+      .field input {
+        width: 100%;
+        padding: 14px 16px;
+        border-radius: 16px;
+        border: 1px solid #e8e8ec;
+        background: #fafafc;
+        color: inherit;
+      }
+
+      .icon-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .icon-choice {
+        height: 54px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        border: 1px solid #e8e8ec;
+        background: #fff;
+      }
+
+      .icon-choice.active {
+        border-color: #171717;
+        background: #f7f7f8;
+      }
+
+      .icon-choice svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      .modal-actions {
+        margin-top: 8px;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .btn {
+        min-width: 104px;
+        padding: 13px 18px;
+        border-radius: 16px;
+        text-align: center;
+      }
+
+      .btn-primary {
+        background: #4b6fff;
+        color: #fff;
+      }
+
+      .btn-soft {
+        background: #f2f2f6;
+      }
+
+      .btn-danger {
+        background: #fff2f1;
+        color: #df4b3f;
+      }
+
+      @media (max-width: 760px) {
+        .app {
+          padding: 18px 16px 28px;
+        }
+
+        .topbar {
+          margin-bottom: 18px;
+        }
+
+        .board {
+          gap: 16px;
+          grid-template-columns: 1fr;
+        }
+
+        .card {
+          min-height: 300px;
+          padding: 22px 20px;
+          border-radius: 24px;
+        }
+
+        .days {
+          font-size: 84px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <button class="title-toggle" id="view-button" type="button" aria-haspopup="menu" aria-expanded="false">
+          <span id="view-label">Days Until</span>
+          <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path d="M5.5 7.5 10 12l4.5-4.5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </button>
+        <div class="top-actions">
+          <button class="icon-btn" id="add-button" type="button" aria-label="Add countdown">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+              <path d="M12 5v14M5 12h14"></path>
+            </svg>
+          </button>
+          <button class="icon-btn" id="page-menu-button" type="button" aria-label="More">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <circle cx="5" cy="12" r="1.9"></circle>
+              <circle cx="12" cy="12" r="1.9"></circle>
+              <circle cx="19" cy="12" r="1.9"></circle>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <section class="board" id="board"></section>
+    </div>
+
+    <div class="scrim hidden" id="scrim"></div>
+
+    <div class="menu hidden" id="view-menu" role="menu" aria-label="View menu">
+      <button class="menu-item" type="button" data-view="active">
+        <span class="menu-left">Active</span>
+        <span data-check="active"></span>
+      </button>
+      <button class="menu-item" type="button" data-view="archived">
+        <span class="menu-left">Archived</span>
+        <span data-check="archived"></span>
+      </button>
+    </div>
+
+    <div class="menu hidden" id="add-menu" role="menu" aria-label="Add menu"></div>
+
+    <div class="menu hidden" id="page-menu" role="menu" aria-label="Page menu">
+      <button class="menu-item" type="button" id="archive-past-button">
+        <span class="menu-left">Archive past</span>
+      </button>
+      <button class="menu-item" type="button" id="delete-archived-button">
+        <span class="menu-left">Delete archived</span>
+      </button>
+    </div>
+
+    <div class="menu hidden" id="card-menu" role="menu" aria-label="Card menu"></div>
+
+    <div class="modal hidden" id="editor">
+      <div class="modal-head">
+        <h2 class="modal-title" id="editor-title">Days Until</h2>
+        <button class="close-btn" id="close-editor" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+            <path d="m6 6 12 12M18 6 6 18"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="form">
+        <label class="field">
+          <span>Title</span>
+          <input id="title-input" type="text" maxlength="80" />
+        </label>
+        <label class="field">
+          <span>Date</span>
+          <input id="date-input" type="date" />
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-danger hidden" id="delete-button" type="button">Delete</button>
+        <div style="display:flex; gap:12px; margin-left:auto;">
+          <button class="btn btn-soft" id="cancel-button" type="button">Cancel</button>
+          <button class="btn btn-primary" id="save-button" type="button">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="group-editor">
+      <div class="modal-head">
+        <h2 class="modal-title">New Group</h2>
+        <button class="close-btn" id="close-group-editor" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+            <path d="m6 6 12 12M18 6 6 18"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="form">
+        <label class="field">
+          <span>Name</span>
+          <input id="group-name-input" type="text" maxlength="40" />
+        </label>
+        <div class="field">
+          <span>Icon</span>
+          <div class="icon-grid" id="group-icon-grid"></div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <div></div>
+        <div style="display:flex; gap:12px; margin-left:auto;">
+          <button class="btn btn-soft" id="cancel-group-button" type="button">Cancel</button>
+          <button class="btn btn-primary" id="save-group-button" type="button">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const STORAGE_KEY = 'countdowns';
+        const VIEW_KEY = 'dui-view';
+        const DAY_MS = 24 * 60 * 60 * 1000;
+        const ICON_DEFS = {
+          hourglass: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10M7 21h10"/><path d="M8 3c0 4 2 5 4 7-2 2-4 3-4 7M16 3c0 4-2 5-4 7 2 2 4 3 4 7"/><path d="M9.5 7.5h5M9.5 16.5h5"/></svg>',
+          heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5S4 15.2 4 9.2C4 6.8 5.9 5 8.2 5c1.5 0 2.8.7 3.8 2 1-1.3 2.3-2 3.8-2C18.1 5 20 6.8 20 9.2c0 6-8 11.3-8 11.3Z"/></svg>',
+          cake: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v4"/><path d="M10.8 4.8c0-.7.5-1.3 1.2-1.8.7.5 1.2 1.1 1.2 1.8 0 .8-.5 1.4-1.2 1.9-.7-.5-1.2-1.1-1.2-1.9Z"/><path d="M5 11h14v8H5z"/><path d="M5 15c1.2 0 1.8-1 3-1s1.8 1 3 1 1.8-1 3-1 1.8 1 3 1 1.8-1 3-1"/></svg>',
+          balloon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c-3.3 0-6 2.5-6 6.1 0 4.4 4.5 7.5 6 7.5s6-3.1 6-7.5C18 5.5 15.3 3 12 3Z"/><path d="M12 16.5v3.2"/><path d="M12 19.7c0 1.7-1.3 2.3-2.5 2.3"/><path d="M12 19.7c0 1.7 1.3 2.3 2.5 2.3"/></svg>',
+          star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3.8 2.5 5.2 5.7.8-4.1 4 1 5.6-5.1-2.8-5.1 2.8 1-5.6-4.1-4 5.7-.8Z"/></svg>',
+          flag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 5c2.2 0 3.2-1.2 5.5-1.2S14.8 5 17 5s3-.9 3-.9v9s-.8.9-3 .9-3.2-1.2-5.5-1.2S8.2 14 6 14"/></svg>',
+          bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 17h12"/><path d="M8 17V11a4 4 0 1 1 8 0v6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>',
+          gift: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h16v10H4z"/><path d="M12 10v10"/><path d="M4 14h16"/><path d="M12 10H8.5A2.5 2.5 0 0 1 8.5 5c2 0 3.5 2.3 3.5 5Zm0 0h3.5A2.5 2.5 0 0 0 15.5 5C13.5 5 12 7.3 12 10Z"/></svg>'
+        };
+        const DEFAULT_GROUPS = [
+          { key: 'countdown', label: 'Countdown', iconKey: 'hourglass', builtin: true },
+          { key: 'anniversary', label: 'Anniversary', iconKey: 'heart', builtin: true },
+          { key: 'birthday', label: 'Birthday', iconKey: 'cake', builtin: true },
+          { key: 'holiday', label: 'Holiday', iconKey: 'balloon', builtin: true }
+        ];
+
+        const state = {
+          items: [],
+          customGroups: [],
+          view: localStorage.getItem(VIEW_KEY) || 'active',
+          editingId: null,
+          creatingGroupKey: 'countdown',
+          selectedIconKey: '',
+          activeMenu: null,
+          activeCardId: null,
+          isReady: false
+        };
+
+        const els = {
+          board: document.getElementById('board'),
+          scrim: document.getElementById('scrim'),
+          viewButton: document.getElementById('view-button'),
+          viewLabel: document.getElementById('view-label'),
+          viewMenu: document.getElementById('view-menu'),
+          addButton: document.getElementById('add-button'),
+          addMenu: document.getElementById('add-menu'),
+          pageMenuButton: document.getElementById('page-menu-button'),
+          pageMenu: document.getElementById('page-menu'),
+          cardMenu: document.getElementById('card-menu'),
+          editor: document.getElementById('editor'),
+          editorTitle: document.getElementById('editor-title'),
+          closeEditor: document.getElementById('close-editor'),
+          titleInput: document.getElementById('title-input'),
+          dateInput: document.getElementById('date-input'),
+          cancelButton: document.getElementById('cancel-button'),
+          saveButton: document.getElementById('save-button'),
+          deleteButton: document.getElementById('delete-button'),
+          groupEditor: document.getElementById('group-editor'),
+          closeGroupEditor: document.getElementById('close-group-editor'),
+          groupNameInput: document.getElementById('group-name-input'),
+          groupIconGrid: document.getElementById('group-icon-grid'),
+          cancelGroupButton: document.getElementById('cancel-group-button'),
+          saveGroupButton: document.getElementById('save-group-button'),
+          archivePastButton: document.getElementById('archive-past-button'),
+          deleteArchivedButton: document.getElementById('delete-archived-button')
+        };
+
+        function todayStart() {
+          const now = new Date();
+          return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        }
+
+        function toIsoDate(date) {
+          const y = date.getFullYear();
+          const m = String(date.getMonth() + 1).padStart(2, '0');
+          const d = String(date.getDate()).padStart(2, '0');
+          return y + '-' + m + '-' + d;
+        }
+
+        function parseDate(iso) {
+          const parts = iso.split('-').map(Number);
+          return new Date(parts[0], parts[1] - 1, parts[2]);
+        }
+
+        function uniqueId() {
+          return 'cd-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
+        }
+
+        function slugify(value) {
+          return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32);
+        }
+
+        function escapeHtml(value) {
+          return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+        }
+
+        function renderIcon(iconKey) {
+          return iconKey && ICON_DEFS[iconKey] ? ICON_DEFS[iconKey] : '';
+        }
+
+        function normalizeGroup(raw) {
+          const group = raw || {};
+          const label = typeof group.label === 'string' ? group.label.trim() : '';
+          const key = typeof group.key === 'string' && group.key ? group.key : slugify(label || 'group');
+          return {
+            key: key || uniqueId(),
+            label: label || 'Group',
+            iconKey: ICON_DEFS[group.iconKey] ? group.iconKey : '',
+            builtin: false
+          };
+        }
+
+        function groupList() {
+          return DEFAULT_GROUPS.concat(state.customGroups);
+        }
+
+        function getGroupByKey(key) {
+          const match = groupList().find(function (group) {
+            return group.key === key;
+          });
+          return match || DEFAULT_GROUPS[0];
+        }
+
+        function normalizeItem(raw) {
+          const item = raw || {};
+          const groupKey = typeof item.groupKey === 'string' ? item.groupKey : item.category;
+          return {
+            id: typeof item.id === 'string' ? item.id : uniqueId(),
+            title: typeof item.title === 'string' ? item.title.trim() : '',
+            targetDate: typeof item.targetDate === 'string' ? item.targetDate : toIsoDate(new Date()),
+            groupKey: groupKey || 'countdown',
+            isArchived: item.isArchived === true,
+            createdAt: typeof item.createdAt === 'number' ? item.createdAt : Date.now(),
+            updatedAt: typeof item.updatedAt === 'number' ? item.updatedAt : Date.now()
+          };
+        }
+
+        function parseStoredState(value) {
+          if (!value) {
+            return { items: [], groups: [] };
+          }
+          try {
+            const parsed = JSON.parse(value);
+            if (Array.isArray(parsed)) {
+              return { items: parsed.map(normalizeItem).filter(function (item) { return item.title; }), groups: [] };
+            }
+            return {
+              items: Array.isArray(parsed.items) ? parsed.items.map(normalizeItem).filter(function (item) { return item.title; }) : [],
+              groups: Array.isArray(parsed.groups) ? parsed.groups.map(normalizeGroup) : []
+            };
+          } catch (error) {
+            return { items: [], groups: [] };
+          }
+        }
+
+        async function loadState() {
+          const serialized = await PluginAPI.loadSyncedData(STORAGE_KEY);
+          const parsed = parseStoredState(serialized);
+          state.items = parsed.items;
+          state.customGroups = parsed.groups;
+          state.isReady = true;
+        }
+
+        async function saveState() {
+          await PluginAPI.persistDataSynced(
+            JSON.stringify({
+              items: state.items,
+              groups: state.customGroups
+            }),
+            STORAGE_KEY,
+          );
+        }
+
+        function itemStats(item) {
+          const target = parseDate(item.targetDate);
+          const diffDays = Math.round((target.getTime() - todayStart().getTime()) / DAY_MS);
+          return {
+            absDays: Math.abs(diffDays),
+            isPast: diffDays < 0,
+            subtitle: diffDays < 0 ? 'Days since ' + item.targetDate : 'Days until ' + item.targetDate
+          };
+        }
+
+        function visibleItems() {
+          return state.items
+            .filter(function (item) {
+              return state.view === 'archived' ? item.isArchived : !item.isArchived;
+            })
+            .map(function (item) {
+              return Object.assign({}, item, itemStats(item));
+            })
+            .sort(function (a, b) {
+              if (a.isPast !== b.isPast) {
+                return a.isPast ? 1 : -1;
+              }
+              if (a.absDays !== b.absDays) {
+                return a.absDays - b.absDays;
+              }
+              return a.title.localeCompare(b.title);
+            });
+        }
+
+        function renderViewLabel() {
+          els.viewLabel.textContent = state.view === 'archived' ? 'Archived' : 'Days Until';
+          Array.prototype.forEach.call(els.viewMenu.querySelectorAll('.menu-item[data-view]'), function (button) {
+            const view = button.getAttribute('data-view');
+            button.classList.toggle('active', view === state.view);
+            const check = button.querySelector('[data-check="' + view + '"]');
+            if (check) {
+              check.textContent = view === state.view ? '✓' : '';
+            }
+          });
+        }
+
+        function renderGroupIconChoices() {
+          els.groupIconGrid.innerHTML = '<button class="icon-choice' + (state.selectedIconKey === '' ? ' active' : '') + '" type="button" data-icon-key=""><span>No Icon</span></button>' +
+          Object.keys(ICON_DEFS).map(function (iconKey) {
+            return '<button class="icon-choice' + (state.selectedIconKey === iconKey ? ' active' : '') + '" type="button" data-icon-key="' + iconKey + '">' + renderIcon(iconKey) + '</button>';
+          }).join('');
+        }
+
+        function renderGroupMark(group, className) {
+          const iconMarkup = renderIcon(group.iconKey);
+          if (!iconMarkup) {
+            return '';
+          }
+          return '<span class="' + className + '">' + iconMarkup + '</span>';
+        }
+
+        function renderAddMenu() {
+          const groups = groupList();
+          els.addMenu.innerHTML = groups.map(function (group) {
+            return '<button class="menu-item" type="button" data-group-key="' + group.key + '"><span class="menu-left">' + renderGroupMark(group, 'menu-icon') + '<span>' + escapeHtml(group.label) + '</span></span></button>';
+          }).join('') +
+          '<div class="menu-separator"></div>' +
+          '<button class="menu-item" type="button" data-action="new-group"><span class="menu-left"><span>New Group</span></span></button>';
+        }
+
+        function renderBoard() {
+          if (!state.isReady) {
+            els.board.innerHTML = '<div class="empty">Loading...</div>';
+            return;
+          }
+          const items = visibleItems();
+          if (!items.length) {
+            els.board.innerHTML = '<div class="empty">' + (state.view === 'archived' ? 'No archived countdowns' : 'No countdowns') + '</div>';
+            return;
+          }
+
+          els.board.innerHTML = items.map(function (item) {
+            const group = getGroupByKey(item.groupKey);
+            return '<article class="card" data-id="' + item.id + '">' +
+              '<button class="card-menu-btn" type="button" data-card-menu="' + item.id + '" aria-label="More">⋯</button>' +
+              '<div class="card-head">' + renderGroupMark(group, 'badge') + '<h2 class="card-title">' + escapeHtml(item.title) + '</h2></div>' +
+              '<div class="days">' + item.absDays + '</div>' +
+              '<div class="subtitle">' + escapeHtml(item.subtitle) + '</div>' +
+              '</article>';
+          }).join('');
+        }
+
+        function renderCardMenu() {
+          const item = state.items.find(function (entry) { return entry.id === state.activeCardId; });
+          if (!item) {
+            els.cardMenu.innerHTML = '';
+            return;
+          }
+          els.cardMenu.innerHTML =
+            '<button class="menu-item" type="button" data-card-action="edit"><span class="menu-left">Edit</span></button>' +
+            '<button class="menu-item" type="button" data-card-action="' + (item.isArchived ? 'restore' : 'archive') + '"><span class="menu-left">' + (item.isArchived ? 'Restore' : 'Archive') + '</span></button>' +
+            '<button class="menu-item" type="button" data-card-action="delete"><span class="menu-left">Delete</span></button>';
+        }
+
+        function renderAll() {
+          renderViewLabel();
+          renderGroupIconChoices();
+          renderAddMenu();
+          renderBoard();
+          renderCardMenu();
+        }
+
+        function openMenu(menuEl, anchorEl, name) {
+          closeMenus();
+          menuEl.classList.remove('hidden');
+          const rect = anchorEl.getBoundingClientRect();
+          const width = menuEl.offsetWidth || 250;
+          menuEl.style.top = rect.bottom + 10 + 'px';
+          menuEl.style.left = Math.max(12, rect.left + window.scrollX - width + rect.width) + 'px';
+          els.scrim.classList.remove('hidden');
+          state.activeMenu = name;
+        }
+
+        function closeMenus() {
+          els.viewMenu.classList.add('hidden');
+          els.addMenu.classList.add('hidden');
+          els.pageMenu.classList.add('hidden');
+          els.cardMenu.classList.add('hidden');
+          if (els.editor.classList.contains('hidden') && els.groupEditor.classList.contains('hidden')) {
+            els.scrim.classList.add('hidden');
+          }
+          state.activeMenu = null;
+        }
+
+        function openEditor(item, groupKey) {
+          const group = getGroupByKey(groupKey || (item ? item.groupKey : 'countdown'));
+          state.editingId = item ? item.id : null;
+          state.creatingGroupKey = group.key;
+          els.editorTitle.textContent = item ? group.label : group.label;
+          els.titleInput.value = item ? item.title : '';
+          els.dateInput.value = item ? item.targetDate : toIsoDate(new Date());
+          els.deleteButton.classList.toggle('hidden', !item);
+          closeMenus();
+          els.editor.classList.remove('hidden');
+          els.scrim.classList.remove('hidden');
+          setTimeout(function () {
+            els.titleInput.focus();
+          }, 0);
+        }
+
+        function closeEditor() {
+          els.editor.classList.add('hidden');
+          state.editingId = null;
+          if (!state.activeMenu && els.groupEditor.classList.contains('hidden')) {
+            els.scrim.classList.add('hidden');
+          }
+        }
+
+        function openGroupEditor() {
+          closeMenus();
+          state.selectedIconKey = '';
+          els.groupNameInput.value = '';
+          renderGroupIconChoices();
+          els.groupEditor.classList.remove('hidden');
+          els.scrim.classList.remove('hidden');
+          setTimeout(function () {
+            els.groupNameInput.focus();
+          }, 0);
+        }
+
+        function closeGroupEditor() {
+          els.groupEditor.classList.add('hidden');
+          if (!state.activeMenu && els.editor.classList.contains('hidden')) {
+            els.scrim.classList.add('hidden');
+          }
+        }
+
+        async function submitEditor() {
+          const title = els.titleInput.value.trim();
+          const targetDate = els.dateInput.value;
+          if (!title || !targetDate) {
+            return;
+          }
+
+          if (state.editingId) {
+            state.items = state.items.map(function (item) {
+              if (item.id !== state.editingId) {
+                return item;
+              }
+              return Object.assign({}, item, {
+                title: title,
+                targetDate: targetDate,
+                updatedAt: Date.now()
+              });
+            });
+          } else {
+            state.items.unshift(normalizeItem({
+              id: uniqueId(),
+              title: title,
+              targetDate: targetDate,
+              groupKey: state.creatingGroupKey,
+              isArchived: false,
+              createdAt: Date.now(),
+              updatedAt: Date.now()
+            }));
+          }
+
+          await saveState();
+          closeEditor();
+          renderAll();
+        }
+
+        async function submitGroupEditor() {
+          const label = els.groupNameInput.value.trim();
+          if (!label) {
+            return;
+          }
+          let key = slugify(label);
+          if (!key) {
+            key = 'group';
+          }
+          while (groupList().some(function (group) { return group.key === key; })) {
+            key = key + '-' + Math.random().toString(36).slice(2, 5);
+          }
+          const group = normalizeGroup({
+            key: key,
+            label: label,
+            iconKey: state.selectedIconKey
+          });
+          state.customGroups.push(group);
+          await saveState();
+          closeGroupEditor();
+          renderAll();
+          openEditor(null, group.key);
+        }
+
+        async function deleteCurrentItem() {
+          if (!state.editingId) {
+            return;
+          }
+          state.items = state.items.filter(function (item) {
+            return item.id !== state.editingId;
+          });
+          await saveState();
+          closeEditor();
+          renderAll();
+        }
+
+        async function updateItem(id, updates) {
+          state.items = state.items.map(function (item) {
+            return item.id === id ? Object.assign({}, item, updates, { updatedAt: Date.now() }) : item;
+          });
+          await saveState();
+          renderAll();
+        }
+
+        async function archivePastItems() {
+          let changed = false;
+          state.items = state.items.map(function (item) {
+            if (!item.isArchived && itemStats(item).isPast) {
+              changed = true;
+              return Object.assign({}, item, { isArchived: true, updatedAt: Date.now() });
+            }
+            return item;
+          });
+          if (changed) {
+            await saveState();
+            renderAll();
+          }
+        }
+
+        async function deleteArchivedItems() {
+          const nextItems = state.items.filter(function (item) {
+            return !item.isArchived;
+          });
+          if (nextItems.length !== state.items.length) {
+            state.items = nextItems;
+            await saveState();
+            renderAll();
+          }
+        }
+
+        async function hydrateFromStorage() {
+          await loadState();
+          renderAll();
+        }
+
+        function queueStartupRefreshes() {
+          setTimeout(function () {
+            hydrateFromStorage().catch(function () {});
+          }, 150);
+          setTimeout(function () {
+            hydrateFromStorage().catch(function () {});
+          }, 600);
+        }
+
+        function bindEvents() {
+          els.viewButton.addEventListener('click', function () {
+            openMenu(els.viewMenu, els.viewButton, 'view');
+          });
+
+          els.addButton.addEventListener('click', function () {
+            openMenu(els.addMenu, els.addButton, 'add');
+          });
+
+          els.pageMenuButton.addEventListener('click', function () {
+            openMenu(els.pageMenu, els.pageMenuButton, 'page');
+          });
+
+          els.scrim.addEventListener('click', function () {
+            closeMenus();
+            closeEditor();
+            closeGroupEditor();
+          });
+
+          els.viewMenu.addEventListener('click', function (event) {
+            const button = event.target.closest('[data-view]');
+            if (!button) {
+              return;
+            }
+            state.view = button.getAttribute('data-view');
+            localStorage.setItem(VIEW_KEY, state.view);
+            closeMenus();
+            renderAll();
+          });
+
+          els.addMenu.addEventListener('click', function (event) {
+            const groupButton = event.target.closest('[data-group-key]');
+            if (groupButton) {
+              openEditor(null, groupButton.getAttribute('data-group-key'));
+              return;
+            }
+            const actionButton = event.target.closest('[data-action="new-group"]');
+            if (actionButton) {
+              openGroupEditor();
+            }
+          });
+
+          els.groupIconGrid.addEventListener('click', function (event) {
+            const button = event.target.closest('[data-icon-key]');
+            if (!button) {
+              return;
+            }
+            state.selectedIconKey = button.getAttribute('data-icon-key');
+            renderGroupIconChoices();
+          });
+
+          els.archivePastButton.addEventListener('click', function () {
+            closeMenus();
+            archivePastItems().catch(function () {});
+          });
+
+          els.deleteArchivedButton.addEventListener('click', function () {
+            closeMenus();
+            deleteArchivedItems().catch(function () {});
+          });
+
+          els.board.addEventListener('click', function (event) {
+            const menuButton = event.target.closest('[data-card-menu]');
+            if (menuButton) {
+              state.activeCardId = menuButton.getAttribute('data-card-menu');
+              renderCardMenu();
+              openMenu(els.cardMenu, menuButton, 'card');
+              return;
+            }
+
+            const card = event.target.closest('.card[data-id]');
+            if (!card) {
+              return;
+            }
+            const item = state.items.find(function (entry) {
+              return entry.id === card.getAttribute('data-id');
+            });
+            if (item) {
+              openEditor(item, item.groupKey);
+            }
+          });
+
+          els.cardMenu.addEventListener('click', function (event) {
+            const button = event.target.closest('[data-card-action]');
+            if (!button || !state.activeCardId) {
+              return;
+            }
+            const action = button.getAttribute('data-card-action');
+            const item = state.items.find(function (entry) {
+              return entry.id === state.activeCardId;
+            });
+            closeMenus();
+            if (!item) {
+              return;
+            }
+            if (action === 'edit') {
+              openEditor(item, item.groupKey);
+              return;
+            }
+            if (action === 'archive') {
+              updateItem(item.id, { isArchived: true }).catch(function () {});
+              return;
+            }
+            if (action === 'restore') {
+              updateItem(item.id, { isArchived: false }).catch(function () {});
+              return;
+            }
+            if (action === 'delete') {
+              state.editingId = item.id;
+              deleteCurrentItem().catch(function () {});
+            }
+          });
+
+          els.closeEditor.addEventListener('click', closeEditor);
+          els.cancelButton.addEventListener('click', closeEditor);
+          els.saveButton.addEventListener('click', function () {
+            submitEditor().catch(function () {});
+          });
+          els.deleteButton.addEventListener('click', function () {
+            deleteCurrentItem().catch(function () {});
+          });
+
+          els.closeGroupEditor.addEventListener('click', closeGroupEditor);
+          els.cancelGroupButton.addEventListener('click', closeGroupEditor);
+          els.saveGroupButton.addEventListener('click', function () {
+            submitGroupEditor().catch(function () {});
+          });
+
+          document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) {
+              hydrateFromStorage().catch(function () {});
+            }
+          });
+
+          window.addEventListener('focus', function () {
+            hydrateFromStorage().catch(function () {});
+          });
+        }
+
+        renderAll();
+        bindEvents();
+        hydrateFromStorage().catch(function () {});
+        queueStartupRefreshes();
+      })();
+    </script>
+  </body>
+</html>
