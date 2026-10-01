@@ -92,10 +92,63 @@
         background: #f1f1f2;
       }
 
-      .icon-btn svg,
-      .close-btn svg {
+      .icon-btn svg {
         width: 24px;
         height: 24px;
+      }
+
+      .close-btn svg {
+        width: 30px;
+        height: 30px;
+      }
+
+      .filter-toggle svg {
+        transition: transform 200ms ease;
+      }
+
+      .filter-toggle[aria-expanded="true"] svg {
+        transform: rotate(180deg);
+      }
+
+      .filter-toggle.filtering {
+        color: #4b6fff;
+      }
+
+      .filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: -12px 0 24px;
+      }
+
+      .filter-bar.hidden {
+        display: none;
+      }
+
+      .filter-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 16px;
+        border-radius: 999px;
+        border: 1px solid #e8e8ec;
+        background: #fff;
+        font-size: 16px;
+      }
+
+      .filter-chip:hover {
+        background: #f5f5f7;
+      }
+
+      .filter-chip.active {
+        border-color: #4b6fff;
+        background: #4b6fff;
+        color: #fff;
+      }
+
+      .filter-chip svg {
+        width: 18px;
+        height: 18px;
       }
 
       .board {
