@@ -10,6 +10,9 @@ Standalone countdown board for Super Productivity.
 - Create synced countdown entries with title, date, and category
 - Switch between active and archived countdowns
 - Archive past countdowns or delete archived ones
+- Manage groups from the More (⋯) menu and delete custom groups or removable default groups
+- Confirm group deletion before permanently removing all its active and archived countdowns
+- Keep Countdown and the reserved All/Alle group protected; deleted default groups stay removed after reloading
 - Open the plugin from the side panel, menu entry, or header button
 
 ## Files

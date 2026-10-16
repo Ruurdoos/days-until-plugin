@@ -384,6 +384,52 @@
         color: #df4b3f;
       }
 
+      .group-list {
+        max-height: 55vh;
+        overflow-y: auto;
+      }
+
+      .group-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 0;
+      }
+
+      .group-row .menu-left {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .group-row .btn,
+      .group-protected {
+        flex-shrink: 0;
+      }
+
+      .group-protected {
+        color: #8f8f95;
+        font-size: 14px;
+      }
+
+      .delete-warning {
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+      }
+
+      .delete-error {
+        color: #df4b3f;
+      }
+
+      .delete-error:empty {
+        display: none;
+      }
+
+      .btn:disabled {
+        cursor: wait;
+        opacity: 0.6;
+      }
+
       @media (max-width: 760px) {
         .app {
           padding: 18px 16px 28px;
@@ -454,6 +500,10 @@
     <div class="menu hidden" id="add-menu" role="menu" aria-label="Add menu"></div>
 
     <div class="menu hidden" id="page-menu" role="menu" aria-label="Page menu">
+      <button class="menu-item" type="button" id="manage-groups-button">
+        <span class="menu-left">Manage groups</span>
+      </button>
+      <div class="menu-separator"></div>
       <button class="menu-item" type="button" id="archive-past-button">
         <span class="menu-left">Archive past</span>
       </button>
@@ -520,6 +570,24 @@
       </div>
     </div>
 
+    <div class="modal hidden" id="group-manager" role="dialog" aria-modal="true" aria-labelledby="group-manager-title" tabindex="-1">
+      <div class="modal-head">
+        <h2 class="modal-title" id="group-manager-title">Manage groups</h2>
+        <button class="close-btn" id="close-group-manager" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="group-list" id="group-list"></div>
+    </div>
+
+    <div class="modal hidden" id="group-delete-dialog" role="alertdialog" aria-modal="true" aria-labelledby="group-delete-title" aria-describedby="group-delete-warning">
+      <h2 class="modal-title" id="group-delete-title">Delete group?</h2>
+      <p class="delete-warning" id="group-delete-warning"></p>
+      <p class="delete-error" id="group-delete-error" role="alert"></p>
+      <div class="modal-actions">
+        <button class="btn btn-soft" id="cancel-group-delete" type="button">Cancel</button>
+        <button class="btn btn-danger" id="confirm-group-delete" type="button">Delete group</button>
+      </div>
+    </div>
+
     <script>
       (function () {
         const STORAGE_KEY = 'countdowns';
@@ -545,6 +613,9 @@
         const state = {
           items: [],
           customGroups: [],
+          deletedDefaultGroups: [],
+          deletingGroupKey: null,
+          isDeletingGroup: false,
           view: localStorage.getItem(VIEW_KEY) || 'active',
           editingId: null,
           creatingGroupKey: 'countdown',
@@ -579,6 +650,15 @@
           groupIconGrid: document.getElementById('group-icon-grid'),
           cancelGroupButton: document.getElementById('cancel-group-button'),
           saveGroupButton: document.getElementById('save-group-button'),
+          manageGroupsButton: document.getElementById('manage-groups-button'),
+          groupManager: document.getElementById('group-manager'),
+          closeGroupManager: document.getElementById('close-group-manager'),
+          groupList: document.getElementById('group-list'),
+          groupDeleteDialog: document.getElementById('group-delete-dialog'),
+          groupDeleteWarning: document.getElementById('group-delete-warning'),
+          groupDeleteError: document.getElementById('group-delete-error'),
+          cancelGroupDelete: document.getElementById('cancel-group-delete'),
+          confirmGroupDelete: document.getElementById('confirm-group-delete'),
           archivePastButton: document.getElementById('archive-past-button'),
           deleteArchivedButton: document.getElementById('delete-archived-button')
         };
@@ -634,7 +714,13 @@
         }
 
         function groupList() {
-          return DEFAULT_GROUPS.concat(state.customGroups);
+          return DEFAULT_GROUPS.filter(function (group) {
+            return !state.deletedDefaultGroups.includes(group.key);
+          }).concat(state.customGroups);
+        }
+
+        function canDeleteGroup(key) {
+          return !['all', 'alle', 'countdown'].includes(key);
         }
 
         function getGroupByKey(key) {
@@ -660,35 +746,47 @@
 
         function parseStoredState(value) {
           if (!value) {
-            return { items: [], groups: [] };
+            return { items: [], groups: [], deletedDefaultGroups: [] };
           }
           try {
             const parsed = JSON.parse(value);
             if (Array.isArray(parsed)) {
-              return { items: parsed.map(normalizeItem).filter(function (item) { return item.title; }), groups: [] };
+              return { items: parsed.map(normalizeItem).filter(function (item) { return item.title; }), groups: [], deletedDefaultGroups: [] };
             }
             return {
               items: Array.isArray(parsed.items) ? parsed.items.map(normalizeItem).filter(function (item) { return item.title; }) : [],
-              groups: Array.isArray(parsed.groups) ? parsed.groups.map(normalizeGroup) : []
+              groups: Array.isArray(parsed.groups) ? parsed.groups.map(normalizeGroup) : [],
+              deletedDefaultGroups: Array.isArray(parsed.deletedDefaultGroups) ? parsed.deletedDefaultGroups.filter(function (key) {
+                return canDeleteGroup(key) && DEFAULT_GROUPS.some(function (group) { return group.key === key; });
+              }) : []
             };
           } catch (error) {
-            return { items: [], groups: [] };
+            return { items: [], groups: [], deletedDefaultGroups: [] };
           }
         }
 
         async function loadState() {
+          if (!els.groupManager.classList.contains('hidden') || !els.groupDeleteDialog.classList.contains('hidden')) {
+            return false;
+          }
           const serialized = await PluginAPI.loadSyncedData(STORAGE_KEY);
+          if (!els.groupManager.classList.contains('hidden') || !els.groupDeleteDialog.classList.contains('hidden')) {
+            return false;
+          }
           const parsed = parseStoredState(serialized);
           state.items = parsed.items;
           state.customGroups = parsed.groups;
+          state.deletedDefaultGroups = parsed.deletedDefaultGroups;
           state.isReady = true;
+          return true;
         }
 
-        async function saveState() {
+        async function saveState(snapshot) {
           await PluginAPI.persistDataSynced(
-            JSON.stringify({
+            JSON.stringify(snapshot || {
               items: state.items,
-              groups: state.customGroups
+              groups: state.customGroups,
+              deletedDefaultGroups: state.deletedDefaultGroups
             }),
             STORAGE_KEY,
           );
@@ -753,7 +851,7 @@
         function renderAddMenu() {
           const groups = groupList();
           els.addMenu.innerHTML = groups.map(function (group) {
-            return '<button class="menu-item" type="button" data-group-key="' + group.key + '"><span class="menu-left">' + renderGroupMark(group, 'menu-icon') + '<span>' + escapeHtml(group.label) + '</span></span></button>';
+            return '<button class="menu-item" type="button" data-group-key="' + escapeHtml(group.key) + '"><span class="menu-left">' + renderGroupMark(group, 'menu-icon') + '<span>' + escapeHtml(group.label) + '</span></span></button>';
           }).join('') +
           '<div class="menu-separator"></div>' +
           '<button class="menu-item" type="button" data-action="new-group"><span class="menu-left"><span>New Group</span></span></button>';
@@ -799,6 +897,7 @@
           renderAddMenu();
           renderBoard();
           renderCardMenu();
+          renderGroupManager();
         }
 
         function openMenu(menuEl, anchorEl, name) {
@@ -817,7 +916,8 @@
           els.addMenu.classList.add('hidden');
           els.pageMenu.classList.add('hidden');
           els.cardMenu.classList.add('hidden');
-          if (els.editor.classList.contains('hidden') && els.groupEditor.classList.contains('hidden')) {
+          if (els.editor.classList.contains('hidden') && els.groupEditor.classList.contains('hidden') &&
+              els.groupManager.classList.contains('hidden') && els.groupDeleteDialog.classList.contains('hidden')) {
             els.scrim.classList.add('hidden');
           }
           state.activeMenu = null;
@@ -864,6 +964,98 @@
           if (!state.activeMenu && els.editor.classList.contains('hidden')) {
             els.scrim.classList.add('hidden');
           }
+        }
+
+        function renderGroupManager() {
+          els.groupList.innerHTML = groupList().map(function (group) {
+            return '<div class="group-row"><span class="menu-left">' + renderGroupMark(group, 'menu-icon') +
+              '<span>' + escapeHtml(group.label) + '</span></span>' +
+              (canDeleteGroup(group.key) ? '<button class="btn btn-danger" type="button" data-delete-group="' +
+                escapeHtml(group.key) + '" aria-label="' + escapeHtml('Delete group ' + group.label) + '">Delete</button>' :
+                '<span class="group-protected">Protected</span>') + '</div>';
+          }).join('');
+        }
+
+        function openGroupManager() {
+          if (!state.isReady) {
+            return;
+          }
+          closeMenus();
+          renderGroupManager();
+          els.groupManager.classList.remove('hidden');
+          els.scrim.classList.remove('hidden');
+          els.closeGroupManager.focus();
+        }
+
+        function closeGroupManager() {
+          els.groupManager.classList.add('hidden');
+          closeMenus();
+          els.pageMenuButton.focus();
+        }
+
+        function openGroupDelete(key) {
+          const group = groupList().find(function (entry) { return entry.key === key; });
+          if (!group || !canDeleteGroup(key)) {
+            return;
+          }
+          const count = state.items.filter(function (item) { return item.groupKey === key; }).length;
+          state.deletingGroupKey = key;
+          els.groupDeleteWarning.textContent = 'Delete group “' + group.label + '”? All ' + count +
+            (count === 1 ? ' countdown' : ' countdowns') +
+            ' in this group, including archived countdowns, will be permanently deleted. This cannot be undone.';
+          els.groupDeleteError.textContent = '';
+          els.groupManager.classList.add('hidden');
+          els.groupDeleteDialog.classList.remove('hidden');
+          els.cancelGroupDelete.focus();
+        }
+
+        function closeGroupDelete() {
+          if (state.isDeletingGroup) {
+            return;
+          }
+          const key = state.deletingGroupKey;
+          state.deletingGroupKey = null;
+          els.groupDeleteDialog.classList.add('hidden');
+          els.groupManager.classList.remove('hidden');
+          const button = Array.from(els.groupList.querySelectorAll('[data-delete-group]')).find(function (entry) {
+            return entry.getAttribute('data-delete-group') === key;
+          });
+          (button || els.closeGroupManager).focus();
+        }
+
+        async function deleteGroup() {
+          const key = state.deletingGroupKey;
+          if (state.isDeletingGroup || !canDeleteGroup(key) ||
+              !groupList().some(function (group) { return group.key === key; })) {
+            return;
+          }
+          const snapshot = {
+            items: state.items.filter(function (item) { return item.groupKey !== key; }),
+            groups: state.customGroups.filter(function (group) { return group.key !== key; }),
+            deletedDefaultGroups: state.deletedDefaultGroups.slice()
+          };
+          if (DEFAULT_GROUPS.some(function (group) { return group.key === key; }) && !snapshot.deletedDefaultGroups.includes(key)) {
+            snapshot.deletedDefaultGroups.push(key);
+          }
+          state.isDeletingGroup = true;
+          els.cancelGroupDelete.disabled = true;
+          els.confirmGroupDelete.disabled = true;
+          els.groupDeleteError.textContent = '';
+          try {
+            await saveState(snapshot);
+            state.items = snapshot.items;
+            state.customGroups = snapshot.groups;
+            state.deletedDefaultGroups = snapshot.deletedDefaultGroups;
+            renderAll();
+          } catch (error) {
+            els.groupDeleteError.textContent = 'Could not delete the group. Please try again.';
+            return;
+          } finally {
+            state.isDeletingGroup = false;
+            els.cancelGroupDelete.disabled = false;
+            els.confirmGroupDelete.disabled = false;
+          }
+          closeGroupDelete();
         }
 
         async function submitEditor() {
@@ -972,8 +1164,9 @@
         }
 
         async function hydrateFromStorage() {
-          await loadState();
-          renderAll();
+          if (await loadState()) {
+            renderAll();
+          }
         }
 
         function queueStartupRefreshes() {
@@ -999,6 +1192,14 @@
           });
 
           els.scrim.addEventListener('click', function () {
+            if (!els.groupDeleteDialog.classList.contains('hidden')) {
+              closeGroupDelete();
+              return;
+            }
+            if (!els.groupManager.classList.contains('hidden')) {
+              closeGroupManager();
+              return;
+            }
             closeMenus();
             closeEditor();
             closeGroupEditor();
@@ -1111,6 +1312,49 @@
           els.cancelGroupButton.addEventListener('click', closeGroupEditor);
           els.saveGroupButton.addEventListener('click', function () {
             submitGroupEditor().catch(function () {});
+          });
+
+          els.manageGroupsButton.addEventListener('click', openGroupManager);
+          els.closeGroupManager.addEventListener('click', closeGroupManager);
+          els.groupList.addEventListener('click', function (event) {
+            const button = event.target.closest('[data-delete-group]');
+            if (button) {
+              openGroupDelete(button.getAttribute('data-delete-group'));
+            }
+          });
+          els.cancelGroupDelete.addEventListener('click', closeGroupDelete);
+          els.confirmGroupDelete.addEventListener('click', deleteGroup);
+
+          document.addEventListener('keydown', function (event) {
+            const dialog = !els.groupDeleteDialog.classList.contains('hidden') ? els.groupDeleteDialog :
+              (!els.groupManager.classList.contains('hidden') ? els.groupManager : null);
+            if (!dialog) {
+              return;
+            }
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              if (dialog === els.groupDeleteDialog) {
+                closeGroupDelete();
+              } else {
+                closeGroupManager();
+              }
+            }
+            if (event.key === 'Tab') {
+              const buttons = Array.from(dialog.querySelectorAll('button:not(:disabled)'));
+              if (!buttons.length) {
+                event.preventDefault();
+                return;
+              }
+              const first = buttons[0];
+              const last = buttons[buttons.length - 1];
+              if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+              } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+              }
+            }
           });
 
           document.addEventListener('visibilitychange', function () {
