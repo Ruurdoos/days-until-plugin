@@ -24,9 +24,4 @@ Standalone countdown board for Super Productivity.
 
 ## Import
 
-Zip `manifest.json`, `plugin.js`, `index.html`, and `icon.svg` flat and import the zip via the Super Productivity plugin UI.
-
-## Tests
-
-Run `npm install`, `npx playwright install chromium`, then `npm test`.
-To use an existing Chrome installation instead, set `CHROME_PATH` to its executable path.
+Zip the plugin files flat and import the zip via the Super Productivity plugin UI.
