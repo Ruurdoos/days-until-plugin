@@ -777,6 +777,16 @@
       </div>
     </div>
 
+    <div class="modal hidden" id="archived-delete-dialog" role="alertdialog" aria-modal="true" aria-labelledby="archived-delete-title" aria-describedby="archived-delete-warning">
+      <h2 class="modal-title" id="archived-delete-title">Delete archived countdowns?</h2>
+      <p class="delete-warning" id="archived-delete-warning"></p>
+      <p class="delete-error" id="archived-delete-error" role="alert"></p>
+      <div class="modal-actions">
+        <button class="btn btn-soft" id="cancel-archived-delete" type="button">Cancel</button>
+        <button class="btn btn-danger" id="confirm-archived-delete" type="button">Delete</button>
+      </div>
+    </div>
+
     <script>
       (function () {
         const STORAGE_KEY = 'countdowns';
@@ -817,6 +827,7 @@
           deletedDefaultGroups: [],
           deletingGroupKey: null,
           isDeletingGroup: false,
+          isDeletingArchived: false,
           view: 'active',
           groupFilter: 'all',
           isFilterOpen: false,
@@ -866,6 +877,11 @@
           groupDeleteError: document.getElementById('group-delete-error'),
           cancelGroupDelete: document.getElementById('cancel-group-delete'),
           confirmGroupDelete: document.getElementById('confirm-group-delete'),
+          archivedDeleteDialog: document.getElementById('archived-delete-dialog'),
+          archivedDeleteWarning: document.getElementById('archived-delete-warning'),
+          archivedDeleteError: document.getElementById('archived-delete-error'),
+          cancelArchivedDelete: document.getElementById('cancel-archived-delete'),
+          confirmArchivedDelete: document.getElementById('confirm-archived-delete'),
           archivePastButton: document.getElementById('archive-past-button'),
           deleteArchivedButton: document.getElementById('delete-archived-button')
         };
@@ -1247,7 +1263,8 @@
           els.pageMenu.classList.add('hidden');
           els.cardMenu.classList.add('hidden');
           if (els.editor.classList.contains('hidden') && els.groupEditor.classList.contains('hidden') &&
-              els.groupManager.classList.contains('hidden') && els.groupDeleteDialog.classList.contains('hidden')) {
+              els.groupManager.classList.contains('hidden') && els.groupDeleteDialog.classList.contains('hidden') &&
+              els.archivedDeleteDialog.classList.contains('hidden')) {
             els.scrim.classList.add('hidden');
           }
           state.activeMenu = null;
@@ -1486,15 +1503,63 @@
           }
         }
 
+        function archivedCount() {
+          return state.items.filter(function (item) { return item.isArchived; }).length;
+        }
+
+        function openArchivedDelete() {
+          const count = archivedCount();
+          if (!count) {
+            return;
+          }
+          els.archivedDeleteWarning.textContent = 'All ' + count + ' archived ' +
+            (count === 1 ? 'countdown' : 'countdowns') +
+            ' in all groups will be permanently deleted. This cannot be undone.';
+          els.archivedDeleteError.textContent = '';
+          els.archivedDeleteDialog.classList.remove('hidden');
+          els.scrim.classList.remove('hidden');
+          els.cancelArchivedDelete.focus();
+        }
+
+        function closeArchivedDelete() {
+          if (state.isDeletingArchived) {
+            return;
+          }
+          els.archivedDeleteDialog.classList.add('hidden');
+          closeMenus();
+          els.pageMenuButton.focus();
+        }
+
         async function deleteArchivedItems() {
+          if (state.isDeletingArchived) {
+            return;
+          }
           const nextItems = state.items.filter(function (item) {
             return !item.isArchived;
           });
           if (nextItems.length !== state.items.length) {
-            state.items = nextItems;
-            await saveState();
-            renderAll();
+            state.isDeletingArchived = true;
+            els.cancelArchivedDelete.disabled = true;
+            els.confirmArchivedDelete.disabled = true;
+            els.archivedDeleteError.textContent = '';
+            try {
+              await saveState({
+                items: nextItems,
+                groups: state.customGroups,
+                deletedDefaultGroups: state.deletedDefaultGroups
+              });
+              state.items = nextItems;
+              renderAll();
+            } catch (error) {
+              els.archivedDeleteError.textContent = 'Could not delete archived countdowns. Please try again.';
+              return;
+            } finally {
+              state.isDeletingArchived = false;
+              els.cancelArchivedDelete.disabled = false;
+              els.confirmArchivedDelete.disabled = false;
+            }
           }
+          closeArchivedDelete();
         }
 
         async function hydrateFromStorage() {
@@ -1544,6 +1609,10 @@
           });
 
           els.scrim.addEventListener('click', function () {
+            if (!els.archivedDeleteDialog.classList.contains('hidden')) {
+              closeArchivedDelete();
+              return;
+            }
             if (!els.groupDeleteDialog.classList.contains('hidden')) {
               closeGroupDelete();
               return;
@@ -1596,6 +1665,10 @@
 
           els.deleteArchivedButton.addEventListener('click', function () {
             closeMenus();
+            openArchivedDelete();
+          });
+          els.cancelArchivedDelete.addEventListener('click', closeArchivedDelete);
+          els.confirmArchivedDelete.addEventListener('click', function () {
             deleteArchivedItems().catch(function () {});
           });
 
@@ -1678,14 +1751,17 @@
           els.confirmGroupDelete.addEventListener('click', deleteGroup);
 
           document.addEventListener('keydown', function (event) {
-            const dialog = !els.groupDeleteDialog.classList.contains('hidden') ? els.groupDeleteDialog :
-              (!els.groupManager.classList.contains('hidden') ? els.groupManager : null);
+            const dialog = !els.archivedDeleteDialog.classList.contains('hidden') ? els.archivedDeleteDialog :
+              (!els.groupDeleteDialog.classList.contains('hidden') ? els.groupDeleteDialog :
+              (!els.groupManager.classList.contains('hidden') ? els.groupManager : null));
             if (!dialog) {
               return;
             }
             if (event.key === 'Escape') {
               event.preventDefault();
-              if (dialog === els.groupDeleteDialog) {
+              if (dialog === els.archivedDeleteDialog) {
+                closeArchivedDelete();
+              } else if (dialog === els.groupDeleteDialog) {
                 closeGroupDelete();
               } else {
                 closeGroupManager();
