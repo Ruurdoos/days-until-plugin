@@ -6,7 +6,65 @@
     <title>Days Until</title>
     <style>
       :root {
-        color-scheme: light dark;
+        color-scheme: light;
+        --page-bg: #f8f8f6;
+        --surface: #fff;
+        --surface-raised: rgba(255, 255, 255, 0.98);
+        --surface-soft: #f5f5f7;
+        --surface-input: #fafafc;
+        --surface-selected: #f7f7f8;
+        --surface-empty: rgba(255, 255, 255, 0.58);
+        --hover-bg: #f5f5f7;
+        --hover-strong-bg: #f1f1f2;
+        --border: #ececef;
+        --border-strong: #e8e8ec;
+        --raised-border: rgba(0, 0, 0, 0.06);
+        --text: #171717;
+        --text-secondary: #424242;
+        --text-muted: #8f8f95;
+        --text-faint: #a6a6ac;
+        --accent: #4b6fff;
+        --accent-fill: #4b6fff;
+        --on-accent: #fff;
+        --danger: #df4b3f;
+        --danger-bg: #fff2f1;
+        --scrim-bg: rgba(0, 0, 0, 0.08);
+        --shadow-soft: 0 1px 0 rgba(0, 0, 0, 0.04), 0 6px 24px rgba(0, 0, 0, 0.04);
+        --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.02), 0 12px 40px rgba(0, 0, 0, 0.05);
+        --shadow-card-hover: 0 2px 6px rgba(0, 0, 0, 0.04), 0 20px 44px rgba(0, 0, 0, 0.08);
+        --shadow-menu: 0 22px 60px rgba(0, 0, 0, 0.14);
+        --shadow-modal: 0 30px 80px rgba(0, 0, 0, 0.18);
+      }
+
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --page-bg: #131315;
+        --surface: #1d1d20;
+        --surface-raised: rgba(37, 37, 41, 0.98);
+        --surface-soft: #2f2f34;
+        --surface-input: #17171a;
+        --surface-selected: #2c2c31;
+        --surface-empty: rgba(255, 255, 255, 0.03);
+        --hover-bg: #2f2f34;
+        --hover-strong-bg: #3a3a40;
+        --border: #2b2b30;
+        --border-strong: #38383e;
+        --raised-border: rgba(255, 255, 255, 0.08);
+        --text: #ececef;
+        --text-secondary: #c2c2c8;
+        --text-muted: #9a9aa2;
+        --text-faint: #85858d;
+        --accent: #7d97ff;
+        --accent-fill: #4b6fff;
+        --on-accent: #fff;
+        --danger: #ff7b70;
+        --danger-bg: rgba(223, 75, 63, 0.16);
+        --scrim-bg: rgba(0, 0, 0, 0.45);
+        --shadow-soft: 0 1px 0 rgba(0, 0, 0, 0.3), 0 6px 24px rgba(0, 0, 0, 0.25);
+        --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 40px rgba(0, 0, 0, 0.3);
+        --shadow-card-hover: 0 2px 6px rgba(0, 0, 0, 0.35), 0 20px 44px rgba(0, 0, 0, 0.45);
+        --shadow-menu: 0 22px 60px rgba(0, 0, 0, 0.5);
+        --shadow-modal: 0 30px 80px rgba(0, 0, 0, 0.55);
       }
 
       * {
@@ -20,8 +78,8 @@
       }
 
       body {
-        background: color-mix(in srgb, var(--bg, #f7f7f5) 96%, white);
-        color: #171717;
+        background: var(--page-bg);
+        color: var(--text);
         font-family: "SF Pro Display", "Segoe UI", sans-serif;
       }
 
@@ -83,13 +141,13 @@
         align-items: center;
         justify-content: center;
         border-radius: 16px;
-        background: color-mix(in srgb, var(--card-bg, white) 90%, var(--bg, #f7f7f5));
-        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04), 0 6px 24px rgba(0, 0, 0, 0.04);
+        background: var(--surface);
+        box-shadow: var(--shadow-soft);
       }
 
       .icon-btn:hover,
       .close-btn:hover {
-        background: #f1f1f2;
+        background: var(--hover-strong-bg);
       }
 
       .icon-btn svg {
@@ -111,7 +169,7 @@
       }
 
       .filter-toggle.filtering {
-        color: #4b6fff;
+        color: var(--accent);
       }
 
       .filter-bar {
@@ -131,19 +189,19 @@
         gap: 8px;
         padding: 9px 16px;
         border-radius: 999px;
-        border: 1px solid #e8e8ec;
-        background: #fff;
+        border: 1px solid var(--border-strong);
+        background: var(--surface);
         font-size: 16px;
       }
 
       .filter-chip:hover {
-        background: #f5f5f7;
+        background: var(--hover-bg);
       }
 
       .filter-chip.active {
-        border-color: #4b6fff;
-        background: #4b6fff;
-        color: #fff;
+        border-color: var(--accent-fill);
+        background: var(--accent-fill);
+        color: var(--on-accent);
       }
 
       .filter-chip svg {
@@ -162,15 +220,15 @@
         min-height: 360px;
         padding: 28px 26px 24px;
         border-radius: 28px;
-        background: #fff;
-        border: 1px solid #ececef;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02), 0 12px 40px rgba(0, 0, 0, 0.05);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-card);
         transition: transform 160ms ease, box-shadow 160ms ease;
       }
 
       .card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04), 0 20px 44px rgba(0, 0, 0, 0.08);
+        box-shadow: var(--shadow-card-hover);
       }
 
       .card-menu-btn {
@@ -183,11 +241,11 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        color: #424242;
+        color: var(--text-secondary);
       }
 
       .card-menu-btn:hover {
-        background: #f4f4f5;
+        background: var(--hover-bg);
       }
 
       .card-head {
@@ -207,8 +265,8 @@
         align-items: center;
         justify-content: center;
         border-radius: 50%;
-        border: 1.5px solid #171717;
-        color: #171717;
+        border: 1.5px solid var(--text);
+        color: var(--text);
       }
 
       .badge svg {
@@ -229,14 +287,14 @@
         line-height: 1;
         font-weight: 300;
         text-align: center;
-        color: #4b6fff;
+        color: var(--accent);
         letter-spacing: -0.04em;
       }
 
       .subtitle {
         margin-top: 20px;
         text-align: center;
-        color: #a6a6ac;
+        color: var(--text-faint);
         font-size: 18px;
         line-height: 1.35;
       }
@@ -247,7 +305,7 @@
         align-items: center;
         justify-content: center;
         gap: 6px;
-        color: #8f8f95;
+        color: var(--text-muted);
         font-size: 15px;
       }
 
@@ -262,9 +320,9 @@
         display: grid;
         place-items: center;
         border-radius: 30px;
-        background: rgba(255, 255, 255, 0.58);
-        border: 1px solid #ececef;
-        color: #a3a3aa;
+        background: var(--surface-empty);
+        border: 1px solid var(--border);
+        color: var(--text-faint);
         font-size: 22px;
       }
 
@@ -274,9 +332,9 @@
         min-width: 250px;
         padding: 14px;
         border-radius: 26px;
-        background: rgba(255, 255, 255, 0.98);
-        border: 1px solid rgba(0, 0, 0, 0.06);
-        box-shadow: 0 22px 60px rgba(0, 0, 0, 0.14);
+        background: var(--surface-raised);
+        border: 1px solid var(--raised-border);
+        box-shadow: var(--shadow-menu);
       }
 
       .menu.hidden,
@@ -300,11 +358,11 @@
 
       .menu-item:hover,
       .icon-choice:hover {
-        background: #f5f5f7;
+        background: var(--hover-bg);
       }
 
       .menu-item.active {
-        color: #4b6fff;
+        color: var(--accent);
       }
 
       .menu-left {
@@ -316,13 +374,13 @@
       .menu-separator {
         height: 1px;
         margin: 10px 4px;
-        background: #ececef;
+        background: var(--border);
       }
 
       .menu-icon {
         width: 28px;
         height: 28px;
-        color: #171717;
+        color: var(--text);
       }
 
       .menu-icon svg {
@@ -334,7 +392,7 @@
         position: fixed;
         inset: 0;
         z-index: 15;
-        background: rgba(0, 0, 0, 0.08);
+        background: var(--scrim-bg);
       }
 
       .modal {
@@ -345,9 +403,9 @@
         width: min(92vw, 460px);
         transform: translate(-50%, -50%);
         border-radius: 30px;
-        background: rgba(255, 255, 255, 0.98);
-        border: 1px solid rgba(0, 0, 0, 0.06);
-        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.18);
+        background: var(--surface-raised);
+        border: 1px solid var(--raised-border);
+        box-shadow: var(--shadow-modal);
         padding: 24px;
       }
 
@@ -373,7 +431,7 @@
         align-items: center;
         justify-content: center;
         border-radius: 14px;
-        background: #f5f5f7;
+        background: var(--surface-soft);
       }
 
       .form {
@@ -388,15 +446,15 @@
 
       .field span {
         font-size: 14px;
-        color: #8f8f95;
+        color: var(--text-muted);
       }
 
       .field input {
         width: 100%;
         padding: 14px 16px;
         border-radius: 16px;
-        border: 1px solid #e8e8ec;
-        background: #fafafc;
+        border: 1px solid var(--border-strong);
+        background: var(--surface-input);
         color: inherit;
       }
 
@@ -409,19 +467,19 @@
       .repeat-choice {
         padding: 11px 4px;
         border-radius: 14px;
-        border: 1px solid #e8e8ec;
-        background: #fff;
+        border: 1px solid var(--border-strong);
+        background: var(--surface);
         font-size: 14px;
         text-align: center;
       }
 
       .repeat-choice:hover {
-        background: #f5f5f7;
+        background: var(--hover-bg);
       }
 
       .repeat-choice.active {
-        border-color: #171717;
-        background: #f7f7f8;
+        border-color: var(--text);
+        background: var(--surface-selected);
         font-weight: 600;
       }
 
@@ -437,13 +495,13 @@
         align-items: center;
         justify-content: center;
         border-radius: 16px;
-        border: 1px solid #e8e8ec;
-        background: #fff;
+        border: 1px solid var(--border-strong);
+        background: var(--surface);
       }
 
       .icon-choice.active {
-        border-color: #171717;
-        background: #f7f7f8;
+        border-color: var(--text);
+        background: var(--surface-selected);
       }
 
       .icon-choice svg {
@@ -466,17 +524,17 @@
       }
 
       .btn-primary {
-        background: #4b6fff;
-        color: #fff;
+        background: var(--accent-fill);
+        color: var(--on-accent);
       }
 
       .btn-soft {
-        background: #f2f2f6;
+        background: var(--surface-soft);
       }
 
       .btn-danger {
-        background: #fff2f1;
-        color: #df4b3f;
+        background: var(--danger-bg);
+        color: var(--danger);
       }
 
       .group-list {
@@ -503,7 +561,7 @@
       }
 
       .group-protected {
-        color: #8f8f95;
+        color: var(--text-muted);
         font-size: 14px;
       }
 
@@ -513,7 +571,7 @@
       }
 
       .delete-error {
-        color: #df4b3f;
+        color: var(--danger);
       }
 
       .delete-error:empty {
@@ -550,6 +608,31 @@
         }
       }
     </style>
+    <script>
+      // Super Productivity injects --is-dark-theme when the iframe is created; fall back to the OS preference.
+      (function () {
+        const darkQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+
+        function isDarkTheme() {
+          const injected = getComputedStyle(document.documentElement).getPropertyValue('--is-dark-theme').trim();
+          if (injected) {
+            return injected === '1';
+          }
+          return !!(darkQuery && darkQuery.matches);
+        }
+
+        function applyTheme() {
+          document.documentElement.setAttribute('data-theme', isDarkTheme() ? 'dark' : 'light');
+        }
+
+        applyTheme();
+        // Older hosts inject the theme variables after this script, so re-check once parsing is done.
+        document.addEventListener('DOMContentLoaded', applyTheme, { once: true });
+        if (darkQuery && darkQuery.addEventListener) {
+          darkQuery.addEventListener('change', applyTheme);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div class="app">
@@ -927,6 +1010,7 @@
             STORAGE_KEY,
           );
         }
+
 
         function daysBetween(from, to) {
           return Math.round((to.getTime() - from.getTime()) / DAY_MS);
