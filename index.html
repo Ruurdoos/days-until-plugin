@@ -281,7 +281,8 @@
 
       .menu.hidden,
       .modal.hidden,
-      .scrim.hidden {
+      .scrim.hidden,
+      .btn.hidden {
         display: none !important;
       }
 
@@ -397,6 +398,31 @@
         border: 1px solid #e8e8ec;
         background: #fafafc;
         color: inherit;
+      }
+
+      .repeat-options {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .repeat-choice {
+        padding: 11px 4px;
+        border-radius: 14px;
+        border: 1px solid #e8e8ec;
+        background: #fff;
+        font-size: 14px;
+        text-align: center;
+      }
+
+      .repeat-choice:hover {
+        background: #f5f5f7;
+      }
+
+      .repeat-choice.active {
+        border-color: #171717;
+        background: #f7f7f8;
+        font-weight: 600;
       }
 
       .icon-grid {
@@ -540,6 +566,11 @@
               <path d="M12 5v14M5 12h14"></path>
             </svg>
           </button>
+          <button class="icon-btn filter-toggle" id="filter-toggle-button" type="button" aria-label="Filter by group" aria-expanded="false" aria-controls="filter-bar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m6 9 6 6 6-6"></path>
+            </svg>
+          </button>
           <button class="icon-btn" id="page-menu-button" type="button" aria-label="More">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <circle cx="5" cy="12" r="1.9"></circle>
@@ -549,6 +580,8 @@
           </button>
         </div>
       </header>
+
+      <nav class="filter-bar hidden" id="filter-bar" aria-label="Group filter"></nav>
 
       <section class="board" id="board"></section>
     </div>
@@ -601,6 +634,10 @@
           <span>Date</span>
           <input id="date-input" type="date" />
         </label>
+        <div class="field">
+          <span>Repeat</span>
+          <div class="repeat-options" id="repeat-options" role="radiogroup" aria-label="Repeat"></div>
+        </div>
       </div>
       <div class="modal-actions">
         <button class="btn btn-danger hidden" id="delete-button" type="button">Delete</button>
@@ -661,7 +698,21 @@
       (function () {
         const STORAGE_KEY = 'countdowns';
         const VIEW_KEY = 'dui-view';
+        const FILTER_KEY = 'dui-group-filter';
+        const FILTER_OPEN_KEY = 'dui-group-filter-open';
         const DAY_MS = 24 * 60 * 60 * 1000;
+        const REPEAT_OPTIONS = [
+          { key: 'none', label: 'Never' },
+          { key: 'daily', label: 'Daily' },
+          { key: 'weekly', label: 'Weekly' },
+          { key: 'monthly', label: 'Monthly' },
+          { key: 'yearly', label: 'Yearly' }
+        ];
+        const DEFAULT_REPEAT_BY_GROUP = {
+          birthday: 'yearly',
+          anniversary: 'yearly'
+        };
+        const REPEAT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/></svg>';
         const ICON_DEFS = {
           hourglass: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10M7 21h10"/><path d="M8 3c0 4 2 5 4 7-2 2-4 3-4 7M16 3c0 4-2 5-4 7 2 2 4 3 4 7"/><path d="M9.5 7.5h5M9.5 16.5h5"/></svg>',
           heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5S4 15.2 4 9.2C4 6.8 5.9 5 8.2 5c1.5 0 2.8.7 3.8 2 1-1.3 2.3-2 3.8-2C18.1 5 20 6.8 20 9.2c0 6-8 11.3-8 11.3Z"/></svg>',
@@ -686,8 +737,11 @@
           deletingGroupKey: null,
           isDeletingGroup: false,
           view: localStorage.getItem(VIEW_KEY) || 'active',
+          groupFilter: localStorage.getItem(FILTER_KEY) || 'all',
+          isFilterOpen: localStorage.getItem(FILTER_OPEN_KEY) === 'true',
           editingId: null,
           creatingGroupKey: 'countdown',
+          selectedRepeat: 'none',
           selectedIconKey: '',
           activeMenu: null,
           activeCardId: null,
@@ -702,6 +756,8 @@
           viewMenu: document.getElementById('view-menu'),
           addButton: document.getElementById('add-button'),
           addMenu: document.getElementById('add-menu'),
+          filterToggleButton: document.getElementById('filter-toggle-button'),
+          filterBar: document.getElementById('filter-bar'),
           pageMenuButton: document.getElementById('page-menu-button'),
           pageMenu: document.getElementById('page-menu'),
           cardMenu: document.getElementById('card-menu'),
@@ -710,6 +766,7 @@
           closeEditor: document.getElementById('close-editor'),
           titleInput: document.getElementById('title-input'),
           dateInput: document.getElementById('date-input'),
+          repeatOptions: document.getElementById('repeat-options'),
           cancelButton: document.getElementById('cancel-button'),
           saveButton: document.getElementById('save-button'),
           deleteButton: document.getElementById('delete-button'),
@@ -799,6 +856,15 @@
           return match || DEFAULT_GROUPS[0];
         }
 
+        function normalizeRepeat(value) {
+          return REPEAT_OPTIONS.some(function (option) { return option.key === value; }) ? value : 'none';
+        }
+
+        function repeatLabel(repeat) {
+          const option = REPEAT_OPTIONS.find(function (entry) { return entry.key === repeat; });
+          return option ? option.label : '';
+        }
+
         function normalizeItem(raw) {
           const item = raw || {};
           const groupKey = typeof item.groupKey === 'string' ? item.groupKey : item.category;
@@ -807,6 +873,7 @@
             title: typeof item.title === 'string' ? item.title.trim() : '',
             targetDate: typeof item.targetDate === 'string' ? item.targetDate : toIsoDate(new Date()),
             groupKey: groupKey || 'countdown',
+            repeat: normalizeRepeat(item.repeat),
             isArchived: item.isArchived === true,
             createdAt: typeof item.createdAt === 'number' ? item.createdAt : Date.now(),
             updatedAt: typeof item.updatedAt === 'number' ? item.updatedAt : Date.now()
@@ -861,20 +928,78 @@
           );
         }
 
+        function daysBetween(from, to) {
+          return Math.round((to.getTime() - from.getTime()) / DAY_MS);
+        }
+
+        // Months/years are derived from the original day so e.g. the 31st clamps to shorter months without drifting.
+        function addRepeatSteps(start, repeat, steps) {
+          const y = start.getFullYear();
+          const m = start.getMonth();
+          const d = start.getDate();
+          if (repeat === 'daily') {
+            return new Date(y, m, d + steps);
+          }
+          if (repeat === 'weekly') {
+            return new Date(y, m, d + steps * 7);
+          }
+          const targetYear = repeat === 'yearly' ? y + steps : y;
+          const targetMonth = repeat === 'monthly' ? m + steps : m;
+          const lastDay = new Date(targetYear, targetMonth + 1, 0).getDate();
+          return new Date(targetYear, targetMonth, Math.min(d, lastDay));
+        }
+
+        function nextOccurrence(item) {
+          const start = parseDate(item.targetDate);
+          const today = todayStart();
+          if (item.repeat === 'none' || start.getTime() >= today.getTime()) {
+            return start;
+          }
+          const elapsedDays = daysBetween(start, today);
+          let steps;
+          if (item.repeat === 'daily') {
+            steps = elapsedDays;
+          } else if (item.repeat === 'weekly') {
+            steps = Math.ceil(elapsedDays / 7);
+          } else if (item.repeat === 'monthly') {
+            steps = (today.getFullYear() - start.getFullYear()) * 12 + (today.getMonth() - start.getMonth());
+          } else {
+            steps = today.getFullYear() - start.getFullYear();
+          }
+          let next = addRepeatSteps(start, item.repeat, steps);
+          while (next.getTime() < today.getTime()) {
+            steps += 1;
+            next = addRepeatSteps(start, item.repeat, steps);
+          }
+          return next;
+        }
+
         function itemStats(item) {
-          const target = parseDate(item.targetDate);
-          const diffDays = Math.round((target.getTime() - todayStart().getTime()) / DAY_MS);
+          const target = nextOccurrence(item);
+          const targetIso = toIsoDate(target);
+          const diffDays = daysBetween(todayStart(), target);
           return {
             absDays: Math.abs(diffDays),
             isPast: diffDays < 0,
-            subtitle: diffDays < 0 ? 'Days since ' + item.targetDate : 'Days until ' + item.targetDate
+            subtitle: diffDays < 0 ? 'Days since ' + targetIso : 'Days until ' + targetIso
           };
         }
 
+        function effectiveGroupFilter() {
+          if (state.groupFilter === 'all') {
+            return 'all';
+          }
+          return groupList().some(function (group) { return group.key === state.groupFilter; }) ? state.groupFilter : 'all';
+        }
+
         function visibleItems() {
+          const groupFilter = effectiveGroupFilter();
           return state.items
             .filter(function (item) {
               return state.view === 'archived' ? item.isArchived : !item.isArchived;
+            })
+            .filter(function (item) {
+              return groupFilter === 'all' || getGroupByKey(item.groupKey).key === groupFilter;
             })
             .map(function (item) {
               return Object.assign({}, item, itemStats(item));
@@ -926,6 +1051,26 @@
           '<button class="menu-item" type="button" data-action="new-group"><span class="menu-left"><span>New Group</span></span></button>';
         }
 
+        function renderFilterBar() {
+          const groupFilter = effectiveGroupFilter();
+          els.filterBar.classList.toggle('hidden', !state.isFilterOpen);
+          els.filterToggleButton.setAttribute('aria-expanded', state.isFilterOpen ? 'true' : 'false');
+          els.filterToggleButton.classList.toggle('filtering', groupFilter !== 'all');
+          els.filterBar.innerHTML =
+            '<button class="filter-chip' + (groupFilter === 'all' ? ' active' : '') + '" type="button" data-filter-key="all" aria-pressed="' + (groupFilter === 'all') + '"><span>All</span></button>' +
+            groupList().map(function (group) {
+              const isActive = groupFilter === group.key;
+              return '<button class="filter-chip' + (isActive ? ' active' : '') + '" type="button" data-filter-key="' + escapeHtml(group.key) + '" aria-pressed="' + isActive + '">' + renderIcon(group.iconKey) + '<span>' + escapeHtml(group.label) + '</span></button>';
+            }).join('');
+        }
+
+        function renderRepeatOptions() {
+          els.repeatOptions.innerHTML = REPEAT_OPTIONS.map(function (option) {
+            const isActive = state.selectedRepeat === option.key;
+            return '<button class="repeat-choice' + (isActive ? ' active' : '') + '" type="button" role="radio" aria-checked="' + isActive + '" data-repeat="' + option.key + '">' + option.label + '</button>';
+          }).join('');
+        }
+
         function renderBoard() {
           if (!state.isReady) {
             els.board.innerHTML = '<div class="empty">Loading...</div>';
@@ -933,17 +1078,21 @@
           }
           const items = visibleItems();
           if (!items.length) {
-            els.board.innerHTML = '<div class="empty">' + (state.view === 'archived' ? 'No archived countdowns' : 'No countdowns') + '</div>';
+            const groupFilter = effectiveGroupFilter();
+            const suffix = groupFilter === 'all' ? '' : ' in ' + getGroupByKey(groupFilter).label;
+            els.board.innerHTML = '<div class="empty">' + escapeHtml((state.view === 'archived' ? 'No archived countdowns' : 'No countdowns') + suffix) + '</div>';
             return;
           }
 
           els.board.innerHTML = items.map(function (item) {
             const group = getGroupByKey(item.groupKey);
+            const repeatTag = item.repeat !== 'none' ? '<div class="repeat-tag">' + REPEAT_ICON + '<span>' + repeatLabel(item.repeat) + '</span></div>' : '';
             return '<article class="card" data-id="' + item.id + '">' +
               '<button class="card-menu-btn" type="button" data-card-menu="' + item.id + '" aria-label="More">⋯</button>' +
               '<div class="card-head">' + renderGroupMark(group, 'badge') + '<h2 class="card-title">' + escapeHtml(item.title) + '</h2></div>' +
               '<div class="days">' + item.absDays + '</div>' +
               '<div class="subtitle">' + escapeHtml(item.subtitle) + '</div>' +
+              repeatTag +
               '</article>';
           }).join('');
         }
@@ -964,6 +1113,7 @@
           renderViewLabel();
           renderGroupIconChoices();
           renderAddMenu();
+          renderFilterBar();
           renderBoard();
           renderCardMenu();
           renderGroupManager();
@@ -983,7 +1133,6 @@
         function closeMenus() {
           els.viewMenu.classList.add('hidden');
           els.addMenu.classList.add('hidden');
-          els.pageMenu.classList.add('hidden');
           els.cardMenu.classList.add('hidden');
           if (els.editor.classList.contains('hidden') && els.groupEditor.classList.contains('hidden') &&
               els.groupManager.classList.contains('hidden') && els.groupDeleteDialog.classList.contains('hidden')) {
@@ -999,6 +1148,8 @@
           els.editorTitle.textContent = item ? group.label : group.label;
           els.titleInput.value = item ? item.title : '';
           els.dateInput.value = item ? item.targetDate : toIsoDate(new Date());
+          state.selectedRepeat = item ? item.repeat : (DEFAULT_REPEAT_BY_GROUP[group.key] || 'none');
+          renderRepeatOptions();
           els.deleteButton.classList.toggle('hidden', !item);
           closeMenus();
           els.editor.classList.remove('hidden');
@@ -1142,6 +1293,7 @@
               return Object.assign({}, item, {
                 title: title,
                 targetDate: targetDate,
+                repeat: normalizeRepeat(state.selectedRepeat),
                 updatedAt: Date.now()
               });
             });
@@ -1151,6 +1303,7 @@
               title: title,
               targetDate: targetDate,
               groupKey: state.creatingGroupKey,
+              repeat: state.selectedRepeat,
               isArchived: false,
               createdAt: Date.now(),
               updatedAt: Date.now()
@@ -1258,6 +1411,33 @@
 
           els.pageMenuButton.addEventListener('click', function () {
             openMenu(els.pageMenu, els.pageMenuButton, 'page');
+          });
+
+          els.filterToggleButton.addEventListener('click', function () {
+            closeMenus();
+            state.isFilterOpen = !state.isFilterOpen;
+            localStorage.setItem(FILTER_OPEN_KEY, String(state.isFilterOpen));
+            renderFilterBar();
+          });
+
+          els.filterBar.addEventListener('click', function (event) {
+            const chip = event.target.closest('[data-filter-key]');
+            if (!chip) {
+              return;
+            }
+            state.groupFilter = chip.getAttribute('data-filter-key');
+            localStorage.setItem(FILTER_KEY, state.groupFilter);
+            renderFilterBar();
+            renderBoard();
+          });
+
+          els.repeatOptions.addEventListener('click', function (event) {
+            const button = event.target.closest('[data-repeat]');
+            if (!button) {
+              return;
+            }
+            state.selectedRepeat = normalizeRepeat(button.getAttribute('data-repeat'));
+            renderRepeatOptions();
           });
 
           els.scrim.addEventListener('click', function () {

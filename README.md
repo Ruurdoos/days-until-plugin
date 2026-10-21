@@ -8,11 +8,13 @@ Standalone countdown board for Super Productivity.
 ## Included behavior
 
 - Create synced countdown entries with title, date, and category
+- Repeat entries daily, weekly, monthly, or yearly (the card always shows the next occurrence)
 - Switch between active and archived countdowns
 - Archive past countdowns or delete archived ones
 - Manage groups from the More (⋯) menu and delete custom groups or removable default groups
 - Confirm group deletion before permanently removing all its active and archived countdowns
 - Keep Countdown and the reserved All/Alle group protected; deleted default groups stay removed after reloading
+- Filter the board by group via the arrow button in the top right
 - Open the plugin from the side panel, menu entry, or header button
 
 ## Files
