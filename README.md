@@ -15,7 +15,7 @@ Standalone countdown board for Super Productivity.
 - Confirm group deletion before permanently removing all its active and archived countdowns
 - Keep Countdown and the reserved All/Alle group protected; deleted default groups stay removed after reloading
 - Filter the board by group via the arrow button in the top right
-- Open the plugin from the side panel, menu entry, or header button
+- Open the plugin from the side panel button or the menu entry (full-page view)
 
 ## Files
 

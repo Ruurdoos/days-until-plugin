@@ -1,46 +1,9 @@
-(function () {
-  const EMBED_TITLE = 'Days Until';
-
-  function hasMethod(name) {
-    return typeof PluginAPI[name] === 'function';
-  }
-
-  function openCountdownView() {
-    if (hasMethod('showIndexHtmlAsView')) {
-      PluginAPI.showIndexHtmlAsView();
-    }
-  }
-
-  function registerUi() {
-    if (hasMethod('registerSidePanelButton')) {
-      PluginAPI.registerSidePanelButton({
-        label: EMBED_TITLE,
-        icon: 'event_upcoming',
-        onClick: openCountdownView,
-      });
-    }
-
-    if (hasMethod('registerMenuEntry')) {
-      PluginAPI.registerMenuEntry({
-        label: EMBED_TITLE,
-        icon: 'event_upcoming',
-        onClick: openCountdownView,
-      });
-    }
-
-    if (!hasMethod('registerSidePanelButton') && hasMethod('registerHeaderButton')) {
-      PluginAPI.registerHeaderButton({
-        label: EMBED_TITLE,
-        icon: 'event_upcoming',
-        onClick: openCountdownView,
-      });
-    }
-  }
-
-  if (typeof PluginAPI.onReady === 'function') {
-    PluginAPI.onReady(registerUi);
-    return;
-  }
-
-  registerUi();
-})();
+// The side panel button is added automatically by the host because manifest.json sets
+// "sidePanel": true, so only a menu entry for the full-page view is registered here.
+PluginAPI.registerMenuEntry({
+  label: 'Days Until',
+  icon: 'event_upcoming',
+  onClick: () => {
+    PluginAPI.showIndexHtmlAsView();
+  },
+});

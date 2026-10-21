@@ -5,14 +5,15 @@
   "description": "Standalone countdown board for Super Productivity.",
   "manifestVersion": 1,
   "minSupVersion": "14.0.0",
-  "author": "Codex",
-  "homepage": "https://github.com/super-productivity/super-productivity/wiki/2.15-Develop-a-Plugin",
   "icon": "icon.svg",
   "iFrame": true,
   "sidePanel": true,
+  "hooks": ["persistedDataChanged"],
   "permissions": [
+    "registerMenuEntry",
     "showIndexHtmlAsView",
     "persistDataSynced",
-    "loadSyncedData"
+    "loadSyncedData",
+    "registerHook"
   ]
 }
