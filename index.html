@@ -780,9 +780,7 @@
     <script>
       (function () {
         const STORAGE_KEY = 'countdowns';
-        const VIEW_KEY = 'dui-view';
-        const FILTER_KEY = 'dui-group-filter';
-        const FILTER_OPEN_KEY = 'dui-group-filter-open';
+        const UI_PREFS_KEY = 'ui-prefs';
         const DAY_MS = 24 * 60 * 60 * 1000;
         const REPEAT_OPTIONS = [
           { key: 'none', label: 'Never' },
@@ -819,9 +817,9 @@
           deletedDefaultGroups: [],
           deletingGroupKey: null,
           isDeletingGroup: false,
-          view: localStorage.getItem(VIEW_KEY) || 'active',
-          groupFilter: localStorage.getItem(FILTER_KEY) || 'all',
-          isFilterOpen: localStorage.getItem(FILTER_OPEN_KEY) === 'true',
+          view: 'active',
+          groupFilter: 'all',
+          isFilterOpen: false,
           editingId: null,
           creatingGroupKey: 'countdown',
           selectedRepeat: 'none',
@@ -1011,6 +1009,35 @@
           );
         }
 
+        async function loadUiPrefs() {
+          const serialized = await PluginAPI.loadSyncedData(UI_PREFS_KEY);
+          if (!serialized) {
+            return;
+          }
+          try {
+            const prefs = JSON.parse(serialized);
+            if (prefs.view === 'active' || prefs.view === 'archived') {
+              state.view = prefs.view;
+            }
+            if (typeof prefs.groupFilter === 'string' && prefs.groupFilter) {
+              state.groupFilter = prefs.groupFilter;
+            }
+            state.isFilterOpen = prefs.isFilterOpen === true;
+          } catch (error) {
+            // Ignore corrupt prefs and keep the defaults.
+          }
+        }
+
+        function saveUiPrefs() {
+          PluginAPI.persistDataSynced(
+            JSON.stringify({
+              view: state.view,
+              groupFilter: state.groupFilter,
+              isFilterOpen: state.isFilterOpen
+            }),
+            UI_PREFS_KEY,
+          ).catch(function () {});
+        }
 
         function daysBetween(from, to) {
           return Math.round((to.getTime() - from.getTime()) / DAY_MS);
@@ -1476,15 +1503,6 @@
           }
         }
 
-        function queueStartupRefreshes() {
-          setTimeout(function () {
-            hydrateFromStorage().catch(function () {});
-          }, 150);
-          setTimeout(function () {
-            hydrateFromStorage().catch(function () {});
-          }, 600);
-        }
-
         function bindEvents() {
           els.viewButton.addEventListener('click', function () {
             openMenu(els.viewMenu, els.viewButton, 'view');
@@ -1501,7 +1519,7 @@
           els.filterToggleButton.addEventListener('click', function () {
             closeMenus();
             state.isFilterOpen = !state.isFilterOpen;
-            localStorage.setItem(FILTER_OPEN_KEY, String(state.isFilterOpen));
+            saveUiPrefs();
             renderFilterBar();
           });
 
@@ -1511,7 +1529,7 @@
               return;
             }
             state.groupFilter = chip.getAttribute('data-filter-key');
-            localStorage.setItem(FILTER_KEY, state.groupFilter);
+            saveUiPrefs();
             renderFilterBar();
             renderBoard();
           });
@@ -1545,7 +1563,7 @@
               return;
             }
             state.view = button.getAttribute('data-view');
-            localStorage.setItem(VIEW_KEY, state.view);
+            saveUiPrefs();
             closeMenus();
             renderAll();
           });
@@ -1690,22 +1708,44 @@
               }
             }
           });
+        }
 
-          document.addEventListener('visibilitychange', function () {
-            if (!document.hidden) {
-              hydrateFromStorage().catch(function () {});
+        // Older Super Productivity versions inject window.PluginAPI at the end of the body (after this script),
+        // newer ones at the start of the head, so wait until it exists before touching the API.
+        function whenPluginApiReady(callback) {
+          let attempts = 0;
+          function check() {
+            if (window.PluginAPI) {
+              callback();
+            } else if (attempts++ < 100) {
+              setTimeout(check, 50);
             }
-          });
+          }
+          if (window.PluginAPI || document.readyState !== 'loading') {
+            check();
+          } else {
+            document.addEventListener('DOMContentLoaded', check, { once: true });
+          }
+        }
 
-          window.addEventListener('focus', function () {
+        async function init() {
+          bindEvents();
+          await Promise.all([
+            loadUiPrefs().catch(function () {}),
+            loadState().catch(function () {})
+          ]);
+          renderAll();
+          PluginAPI.registerHook(PluginAPI.Hooks.PERSISTED_DATA_CHANGED, function () {
             hydrateFromStorage().catch(function () {});
           });
         }
 
         renderAll();
-        bindEvents();
-        hydrateFromStorage().catch(function () {});
-        queueStartupRefreshes();
+        whenPluginApiReady(function () {
+          init().catch(function (error) {
+            console.error('[Days Until] init failed', error);
+          });
+        });
       })();
     </script>
   </body>
