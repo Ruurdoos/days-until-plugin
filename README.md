@@ -1,6 +1,7 @@
 # Days Until Plugin for Super Productivity
 
-<img width="1433" height="528" alt="image" src="https://github.com/user-attachments/assets/e3fab114-3eeb-4b5c-b879-efa514cc9ff3" />
+<img width="1608" height="541" alt="image" src="https://github.com/user-attachments/assets/041678ab-c4f1-4b83-bc4d-a7ba61fee5c0" />
+
 
 
 Standalone countdown board for Super Productivity.
