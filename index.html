@@ -1811,7 +1811,9 @@
             loadState().catch(function () {})
           ]);
           renderAll();
-          PluginAPI.registerHook(PluginAPI.Hooks.PERSISTED_DATA_CHANGED, function () {
+          var persistedHook =
+            (PluginAPI.Hooks && PluginAPI.Hooks.PERSISTED_DATA_UPDATE) || 'persistedDataUpdate';
+          PluginAPI.registerHook(persistedHook, function () {
             hydrateFromStorage().catch(function () {});
           });
         }
